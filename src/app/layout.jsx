@@ -1,11 +1,6 @@
 import '@/styles/globals.css';
 import { StoreProvider } from '@/context/StoreContext';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import CartDrawer from '@/components/CartDrawer';
-import VariantPickerModal from '@/components/VariantPickerModal';
-import FloatingActions from '@/components/FloatingActions';
-import MobileBottomNav from '@/components/MobileBottomNav';
+import StorefrontLayoutWrapper from '@/components/StorefrontLayoutWrapper';
 import dbConnect from '@/lib/mongodb';
 import Category from '@/models/Category';
 import Setting from '@/models/Setting';
@@ -45,17 +40,9 @@ export default async function RootLayout({ children }) {
       </head>
       <body>
         <StoreProvider>
-          <Header categories={categories} marqueeText={setting.topbarMarquee} />
-          <main style={{ minHeight: '80vh' }}>{children}</main>
-          <Footer setting={setting} />
-          <CartDrawer />
-          <VariantPickerModal />
-          <FloatingActions
-            whatsapp={setting.whatsappNumber || '8801824416130'}
-            phone={setting.phone || '+8801824416130'}
-            email={setting.email || 'contact@newlookz.com'}
-          />
-          <MobileBottomNav />
+          <StorefrontLayoutWrapper categories={categories} setting={setting}>
+            {children}
+          </StorefrontLayoutWrapper>
         </StoreProvider>
       </body>
     </html>

@@ -12,16 +12,22 @@ function AdminProductsContent() {
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [colorsList, setColorsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState(['M', 'L', 'XL']);
 
   const [form, setForm] = useState({
     title: '',
     slug: '',
     description: '',
     shortDescription: '',
+    brand: '',
     category: '',
     categorySlug: '',
     subcategory: '',
@@ -39,11 +45,18 @@ function AdminProductsContent() {
 
   const fetchData = async () => {
     try {
-      const [prodRes, catRes] = await Promise.all([
+      const [prodRes, catRes, brandRes, colorRes] = await Promise.all([
         fetch('/api/products?limit=200'),
         fetch('/api/categories'),
+        fetch('/api/brands'),
+        fetch('/api/colors'),
       ]);
-      const [prodData, catData] = await Promise.all([prodRes.json(), catRes.json()]);
+      const [prodData, catData, brandData, colorData] = await Promise.all([
+        prodRes.json(),
+        catRes.json(),
+        brandRes.json(),
+        colorRes.json(),
+      ]);
 
       if (prodData.success) setProducts(prodData.products || []);
       if (catData.success) {
@@ -56,6 +69,8 @@ function AdminProductsContent() {
           }));
         }
       }
+      if (brandData.success) setBrands(brandData.brands || []);
+      if (colorData.success) setColorsList(colorData.colors || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -75,11 +90,14 @@ function AdminProductsContent() {
 
   const openAddModal = () => {
     setEditingProduct(null);
+    setSelectedColors(['Black', 'Navy Blue']);
+    setSelectedSizes(['M', 'L', 'XL']);
     setForm({
       title: '',
       slug: '',
       description: '',
       shortDescription: '',
+      brand: brands[0]?.name || 'NEW LOOK_Z Signature',
       category: categories[0]?.name || 'Mens Fashion',
       categorySlug: categories[0]?.slug || 'mens-fashion',
       subcategory: '',
@@ -99,11 +117,18 @@ function AdminProductsContent() {
 
   const openEditModal = (p) => {
     setEditingProduct(p);
+    // Extract existing colors and sizes from axes
+    const colorAxis = p.axes?.find((a) => a.name === 'Color');
+    const sizeAxis = p.axes?.find((a) => a.name === 'Size');
+    setSelectedColors(colorAxis ? colorAxis.values.map((v) => v.label) : ['Black']);
+    setSelectedSizes(sizeAxis ? sizeAxis.values.map((v) => v.label) : ['M', 'L']);
+
     setForm({
       title: p.title,
       slug: p.slug,
       description: p.description || '',
       shortDescription: p.shortDescription || '',
+      brand: p.brand || brands[0]?.name || '',
       category: p.category,
       categorySlug: p.categorySlug,
       subcategory: p.subcategory || '',
@@ -134,6 +159,22 @@ function AdminProductsContent() {
     }
   };
 
+  const toggleColorSelect = (colorName) => {
+    if (selectedColors.includes(colorName)) {
+      setSelectedColors(selectedColors.filter((c) => c !== colorName));
+    } else {
+      setSelectedColors([...selectedColors, colorName]);
+    }
+  };
+
+  const toggleSizeSelect = (sizeLabel) => {
+    if (selectedSizes.includes(sizeLabel)) {
+      setSelectedSizes(selectedSizes.filter((s) => s !== sizeLabel));
+    } else {
+      setSelectedSizes([...selectedSizes, sizeLabel]);
+    }
+  };
+
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
@@ -142,11 +183,35 @@ function AdminProductsContent() {
         : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
 
+      // Build Axes with selected colors & swatches + sizes
+      const axes = [];
+
+      if (selectedColors.length > 0) {
+        axes.push({
+          name: 'Color',
+          values: selectedColors.map((cName) => {
+            const matched = colorsList.find((c) => c.name === cName);
+            return {
+              label: cName,
+              swatch: matched ? matched.code : '#000000',
+            };
+          }),
+        });
+      }
+
+      if (selectedSizes.length > 0) {
+        axes.push({
+          name: 'Size',
+          values: selectedSizes.map((s) => ({ label: s })),
+        });
+      }
+
       const payload = {
         ...form,
         regularPrice: Number(form.regularPrice),
         sellingPrice: Number(form.sellingPrice),
         stock: Number(form.stock),
+        axes,
       };
 
       const res = await fetch(url, {
@@ -223,7 +288,7 @@ function AdminProductsContent() {
             style={{
               padding: '10px 14px',
               borderRadius: '8px',
-              border: '1px solid #cbd5e1',
+              border: '1.5px solid #cbd5e1',
               fontSize: '13px',
               width: '220px',
               outline: 'none',
@@ -235,7 +300,7 @@ function AdminProductsContent() {
             onClick={openAddModal}
             style={{
               padding: '10px 18px',
-              background: '#000000',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: '#ffffff',
               borderRadius: '8px',
               fontSize: '13px',
@@ -243,6 +308,8 @@ function AdminProductsContent() {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
             }}
           >
             <i className="ri-add-line"></i> Add New Product
@@ -262,7 +329,7 @@ function AdminProductsContent() {
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>Category</th>
+                  <th>Brand / Category</th>
                   <th>Regular Price</th>
                   <th>Selling Price</th>
                   <th>Discount</th>
@@ -290,10 +357,8 @@ function AdminProductsContent() {
                       </div>
                     </td>
                     <td>
-                      <span style={{ fontWeight: 600 }}>{prod.category}</span>
-                      {prod.subcategory && (
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{prod.subcategory}</div>
-                      )}
+                      <span style={{ fontWeight: 700, color: '#4f46e5' }}>{prod.brand || 'NEW LOOK_Z'}</span>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{prod.category}</div>
                     </td>
                     <td>৳ {prod.regularPrice}</td>
                     <td>
@@ -376,7 +441,7 @@ function AdminProductsContent() {
         <div className="vp-overlay" onClick={() => setModalOpen(false)}>
           <div
             className="vp-dialog"
-            style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}
+            style={{ maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -410,7 +475,34 @@ function AdminProductsContent() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {/* Brand & Category row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>
+                    Brand / Manufacturer
+                  </label>
+                  <select
+                    value={form.brand}
+                    onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      outline: 'none',
+                      background: '#ffffff',
+                    }}
+                  >
+                    <option value="">-- Select Brand --</option>
+                    {brands.map((b) => (
+                      <option key={b.slug} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>
                     Category
@@ -463,6 +555,83 @@ function AdminProductsContent() {
                 </div>
               </div>
 
+              {/* Automatic Colors Selection Grid */}
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, marginBottom: '8px', color: '#0f172a' }}>
+                  Available Colors (Automatically applies color swatches & dots)
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {colorsList.map((col) => {
+                    const isSelected = selectedColors.includes(col.name);
+                    return (
+                      <button
+                        key={col.name}
+                        type="button"
+                        onClick={() => toggleColorSelect(col.name)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          background: isSelected ? '#000000' : '#ffffff',
+                          color: isSelected ? '#ffffff' : '#334155',
+                          border: isSelected ? '1.5px solid #000000' : '1px solid #cbd5e1',
+                          fontSize: '12px',
+                          fontWeight: isSelected ? 700 : 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '14px',
+                            height: '14px',
+                            borderRadius: '50%',
+                            backgroundColor: col.code,
+                            border: '1px solid #cbd5e1',
+                            display: 'inline-block',
+                          }}
+                        ></span>
+                        <span>{col.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Available Sizes Selection */}
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, marginBottom: '8px', color: '#0f172a' }}>
+                  Available Sizes
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {['S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size', '38', '39', '40', '41', '42', '43', '44'].map((sz) => {
+                    const isSelected = selectedSizes.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSizeSelect(sz)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          background: isSelected ? '#000000' : '#ffffff',
+                          color: isSelected ? '#ffffff' : '#334155',
+                          border: isSelected ? '1.5px solid #000000' : '1px solid #cbd5e1',
+                          fontSize: '12px',
+                          fontWeight: isSelected ? 800 : 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Pricing & Stock */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>
