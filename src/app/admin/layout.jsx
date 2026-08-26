@@ -10,7 +10,6 @@ export default function AdminLayout({ children }) {
   const [adminUser, setAdminUser] = useState(null);
   const [mounted, setMounted] = useState(false);
 
-  // If on /admin/login, don't wrap with admin dashboard sidebar
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
@@ -39,20 +38,42 @@ export default function AdminLayout({ children }) {
 
   if (!mounted) return null;
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: 'ri-dashboard-line' },
-    { label: 'Orders', href: '/admin/orders', icon: 'ri-shopping-bag-3-line' },
-    { label: 'Products', href: '/admin/products', icon: 'ri-shirt-line' },
-    { label: 'Categories', href: '/admin/categories', icon: 'ri-apps-2-line' },
-    { label: 'Banners & Marquee', href: '/admin/banners', icon: 'ri-image-line' },
-    { label: 'Coupons', href: '/admin/coupons', icon: 'ri-coupon-3-line' },
-    { label: 'Store Settings', href: '/admin/settings', icon: 'ri-settings-3-line' },
+  const navGroups = [
+    {
+      group: 'Core Operations',
+      items: [
+        { label: 'Dashboard', href: '/admin/dashboard', icon: 'ri-dashboard-line' },
+        { label: 'Orders', href: '/admin/orders', icon: 'ri-shopping-bag-3-line' },
+        { label: 'Products', href: '/admin/products', icon: 'ri-shirt-line' },
+        { label: 'Purchases (Stock)', href: '/admin/purchases', icon: 'ri-archive-drawer-line' },
+        { label: 'Categories', href: '/admin/categories', icon: 'ri-apps-2-line' },
+        { label: 'Customers', href: '/admin/customers', icon: 'ri-user-star-line' },
+        { label: 'Reports & Analytics', href: '/admin/reports', icon: 'ri-bar-chart-box-line' },
+      ],
+    },
+    {
+      group: 'Marketing & Content',
+      items: [
+        { label: 'Blogs & Guides', href: '/admin/blogs', icon: 'ri-article-line' },
+        { label: 'Banners & Marquee', href: '/admin/banners', icon: 'ri-image-line' },
+        { label: 'Coupons & Deals', href: '/admin/coupons', icon: 'ri-coupon-3-line' },
+      ],
+    },
+    {
+      group: 'Access & Administration',
+      items: [
+        { label: 'Users & Staff', href: '/admin/users', icon: 'ri-team-line' },
+        { label: 'Roles & Permissions', href: '/admin/roles', icon: 'ri-shield-user-line' },
+        { label: 'Security & Logs', href: '/admin/security', icon: 'ri-lock-password-line' },
+        { label: 'Store Settings', href: '/admin/settings', icon: 'ri-settings-3-line' },
+      ],
+    },
   ];
 
   return (
     <div className="admin-layout">
       {/* Sidebar */}
-      <aside className="admin-sidebar">
+      <aside className="admin-sidebar" style={{ width: '270px' }}>
         <div className="admin-sidebar-header">
           <div
             style={{
@@ -73,27 +94,44 @@ export default function AdminLayout({ children }) {
           <div>
             <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>NEW LOOK_Z</h2>
             <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Store Admin
+              Enterprise Admin
             </span>
           </div>
         </div>
 
-        <nav className="admin-nav">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`admin-nav-item ${pathname === item.href ? 'active' : ''}`}
-            >
-              <i className={item.icon}></i>
-              <span>{item.label}</span>
-            </Link>
+        <nav className="admin-nav" style={{ paddingBottom: '30px' }}>
+          {navGroups.map((group) => (
+            <div key={group.group} style={{ marginBottom: '16px' }}>
+              <span
+                style={{
+                  display: 'block',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  color: '#64748b',
+                  letterSpacing: '0.8px',
+                  padding: '6px 12px',
+                }}
+              >
+                {group.group}
+              </span>
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`admin-nav-item ${pathname === item.href ? 'active' : ''}`}
+                >
+                  <i className={item.icon}></i>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
           ))}
 
-          <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #1e293b' }}>
+          <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
             <Link href="/" target="_blank" className="admin-nav-item">
               <i className="ri-external-link-line"></i>
-              <span>View Storefront</span>
+              <span>View Live Store</span>
             </Link>
 
             <button
@@ -114,7 +152,7 @@ export default function AdminLayout({ children }) {
         <header className="admin-topbar">
           <div>
             <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-              Store Management Console
+              Control & Management Suite
             </h3>
           </div>
 
