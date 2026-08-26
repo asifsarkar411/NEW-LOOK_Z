@@ -1,8 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function AdminPurchasesPage() {
+export const dynamic = 'force-dynamic';
+
+function AdminPurchasesContent() {
+  const searchParams = useSearchParams();
+  const actionParam = searchParams.get('action');
+
   const [purchases, setPurchases] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +42,12 @@ export default function AdminPurchasesPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (actionParam === 'new') {
+      setModalOpen(true);
+    }
+  }, [actionParam]);
 
   const handleProductSelect = (index, prodId) => {
     const prod = products.find((p) => p._id === prodId);
@@ -419,5 +431,13 @@ export default function AdminPurchasesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminPurchasesPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center' }}>Loading purchases...</div>}>
+      <AdminPurchasesContent />
+    </Suspense>
   );
 }

@@ -1570,10 +1570,13 @@ img {
   transition: all 0.15s ease;
 }
 
-.admin-nav-item:hover,
-.admin-nav-item.active {
-  background: #1e293b;
-  color: #ffffff;
+.admin-nav-item:hover, .admin-nav-item.active {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+.admin-subnav-link:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .admin-nav-item i {

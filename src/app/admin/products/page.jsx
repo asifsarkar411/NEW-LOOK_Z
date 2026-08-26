@@ -1,8 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function AdminProductsPage() {
+export const dynamic = 'force-dynamic';
+
+function AdminProductsContent() {
+  const searchParams = useSearchParams();
+  const actionParam = searchParams.get('action');
+  const filterParam = searchParams.get('filter');
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +66,12 @@ export default function AdminProductsPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (actionParam === 'new') {
+      openAddModal();
+    }
+  }, [actionParam]);
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -168,6 +181,7 @@ export default function AdminProductsPage() {
   };
 
   const filteredProducts = products.filter((p) => {
+    if (filterParam === 'low_stock' && p.stock > 10) return false;
     return (
       !searchTerm ||
       p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,7 +204,13 @@ export default function AdminProductsPage() {
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>Products Catalog</h1>
           <p style={{ fontSize: '13px', color: '#64748b' }}>
-            Manage store catalog, pricing, variants, and stock ({products.length} products)
+            {filterParam === 'low_stock' ? (
+              <span style={{ color: '#dc2626', fontWeight: 700 }}>
+                Filtering: Products with low inventory stock (&le; 10 items)
+              </span>
+            ) : (
+              `Manage store catalog, pricing, variants, and stock (${products.length} products)`
+            )}
           </p>
         </div>
 
@@ -597,5 +617,13 @@ export default function AdminProductsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminProductsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center' }}>Loading products...</div>}>
+      <AdminProductsContent />
+    </Suspense>
   );
 }

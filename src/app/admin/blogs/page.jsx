@@ -1,8 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function AdminBlogsPage() {
+export const dynamic = 'force-dynamic';
+
+function AdminBlogsContent() {
+  const searchParams = useSearchParams();
+  const actionParam = searchParams.get('action');
+
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -33,6 +39,12 @@ export default function AdminBlogsPage() {
   useEffect(() => {
     fetchBlogs();
   }, []);
+
+  useEffect(() => {
+    if (actionParam === 'new') {
+      openAddModal();
+    }
+  }, [actionParam]);
 
   const openAddModal = () => {
     setEditingBlog(null);
@@ -364,5 +376,13 @@ export default function AdminBlogsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminBlogsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center' }}>Loading blogs...</div>}>
+      <AdminBlogsContent />
+    </Suspense>
   );
 }
